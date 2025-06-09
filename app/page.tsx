@@ -32,18 +32,36 @@ export default function page() {
   const [editedTodoTitle, setEditedTodoTitle] = useState("");
 
   useEffect(() => {
-    const fetchTodos = async () => {
-      try {
-        const response = await axios.get(
-          `https://jsonplaceholder.typicode.com/todos?_page=${page}&_limit=${LIMIT}`
-        );
-        setTodos(response.data);
-      } catch (error) {
-        console.log("Error fetching todos", error);
+    const loadTodos = async () => {
+      // Check if we're in the browser (client-side)
+      if (typeof window !== 'undefined') {
+        const storedTodos = localStorage.getItem('todos');
+        
+        if (storedTodos) {
+          // Load todos from localStorage if they exist
+          setTodos(JSON.parse(storedTodos));
+        } else {
+          // If no todos in localStorage, fetch from API
+          try {
+            const response = await axios.get(
+              `https://jsonplaceholder.typicode.com/todos?_page=${page}&_limit=${LIMIT}`
+            );
+            setTodos(response.data);
+          } catch (error) {
+            console.log("Error fetching todos", error);
+          }
+        }
       }
     };
-    fetchTodos();
-  }, []);
+    loadTodos();
+  }, [page, LIMIT]);
+
+  // Save todos to localStorage whenever todos state changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && todos.length > 0) {
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+  }, [todos]);
 
   const handleCreateNewTodo = () => {
     if (newTodo.trim() === "") return;
@@ -56,6 +74,7 @@ export default function page() {
     };
 
     setTodos([...todos, newTodoObject]);
+    setNewTodo(""); // Clear input after creating
   };
 
   const handleDeleteTodo = (id: number) => {
@@ -84,6 +103,19 @@ export default function page() {
     setIsEditing(false);
   }
 
+  const handleToggleComplete = (id: number) => {
+    const updatedTodos = todos.map((todo: Todo) => {
+      if (todo.id === id) {
+        return {
+          ...todo,
+          completed: !todo.completed,
+        };
+      }
+      return todo;
+    });
+    setTodos(updatedTodos);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center">
       <h1 className="text-3xl font-bold mb-10">Todos</h1>
@@ -101,8 +133,16 @@ export default function page() {
           todos.map((todo: Todo) => {
             return (
               <div key={todo.id} className="flex items-center p-2">
-                <Checkbox id={todo.id.toString()} className="border-gray-500" />
-                <label htmlFor={todo.id.toString()} className="ml-2">
+                <Checkbox 
+                  id={todo.id.toString()} 
+                  className="border-gray-500" 
+                  checked={todo.completed}
+                  onCheckedChange={() => handleToggleComplete(todo.id)}
+                />
+                <label 
+                  htmlFor={todo.id.toString()} 
+                  className={`ml-2 ${todo.completed ? 'line-through text-gray-500' : ''}`}
+                >
                   {todo.title}
                 </label>
                 <Button
