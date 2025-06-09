@@ -50,23 +50,40 @@ export default function page() {
   }, [todos, filter]);
 
   useEffect(() => {
-    const fetchTodos = async () => {
-      setIsLoadingTodos(true);
-      try {
-        const response = await axios.get(
-          `https://jsonplaceholder.typicode.com/todos?_page=${page}&_limit=${LIMIT}`
-        );
-        setTodos(response.data);
-        setIsLastPage(response.data.length < LIMIT);
-      } catch (error) {
-        console.error("Error fetching todos", error); // Keep console.error
-        toast.error("Failed to fetch todos. Please try again later.");
-      } finally {
-        setIsLoadingTodos(false);
+    const loadTodos = async () => {
+      // Check if we're in the browser (client-side)
+      if (typeof window !== 'undefined') {
+        const storedTodos = localStorage.getItem('todos');
+        
+        if (storedTodos) {
+          // Load todos from localStorage if they exist
+          setTodos(JSON.parse(storedTodos));
+        } else {
+          // If no todos in localStorage, fetch from API
+          try {
+            const response = await axios.get(
+              `https://jsonplaceholder.typicode.com/todos?_page=${page}&_limit=${LIMIT}`
+            );
+            setTodos(response.data);
+            setIsLastPage(response.data.length < LIMIT);
+          } catch (error) {
+            console.log("Error fetching todos", error);
+            toast.error("Failed to fetch todos. Please try again later.");
+          } finally {
+            setIsLoadingTodos(false);
+          }
+        }
       }
     };
-    fetchTodos();
-  }, [page]); // Ensure `page` is in the dependency array
+    loadTodos();
+  }, [page, LIMIT]);
+
+  // Save todos to localStorage whenever todos state changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && todos.length > 0) {
+      localStorage.setItem('todos', JSON.stringify(todos));
+    }
+  }, [todos]);
 
   const handleCreateNewTodo = () => {
     if (newTodo.trim() === "") {
@@ -174,6 +191,19 @@ export default function page() {
   };
 
   const emptyStateContent = getEmptyStateMessage();
+
+  const handleToggleComplete = (id: number) => {
+    const updatedTodos = todos.map((todo: Todo) => {
+      if (todo.id === id) {
+        return {
+          ...todo,
+          completed: !todo.completed,
+        };
+      }
+      return todo;
+    });
+    setTodos(updatedTodos);
+  };
 
   return (
     // Adjusted padding to match example: py-8 px-4, and removed container (max-w-3xl is already on this div)
