@@ -1,5 +1,6 @@
 "use client";
 
+import Link from 'next/link';
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -210,7 +211,12 @@ export default function page() {
     <div className="max-w-3xl mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Todos</h1>
-        <ModeToggle />
+        <div className="flex items-center gap-4"> {/* Added a div to group ModeToggle and About link */}
+          <ModeToggle />
+          <Link href="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+            About
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-2 mb-8">
